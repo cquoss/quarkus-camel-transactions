@@ -1,5 +1,18 @@
-target/
-.idea/
-ObjectStore/
+# Apache Maven
+/target/
 
-*.iml
+# JetBrains IntelliJ IdeaIU
+/.idea/
+/*.iml
+
+# RedHat Narayana
+/ObjectStore/
+
+# Eclipse
+/.classpath
+/.project
+/.settings/
+
+# RedHat Quarkus
+/quarkus*.log
+
