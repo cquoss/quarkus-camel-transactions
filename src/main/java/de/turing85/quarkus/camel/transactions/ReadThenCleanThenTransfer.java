@@ -2,7 +2,8 @@ package de.turing85.quarkus.camel.transactions;
 
 import java.time.Duration;
 
-import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 import io.agroal.api.AgroalDataSource;
 import io.quarkus.agroal.DataSource;
@@ -13,21 +14,26 @@ import org.apache.camel.component.sql.SqlOutputType;
 import static org.apache.camel.builder.endpoint.StaticEndpointBuilders.scheduler;
 import static org.apache.camel.builder.endpoint.StaticEndpointBuilders.sql;
 
-@ApplicationScoped
-public class ReadThenTruncateThenTransfer extends RouteBuilder {
+@Singleton
+public class ReadThenCleanThenTransfer extends RouteBuilder {
   public static final String QUERY = "query";
 
   private final AgroalDataSource source;
   private final AgroalDataSource target;
   private final ToQueryTransformer toQueryTransformer;
 
-  public ReadThenTruncateThenTransfer(
+  @Inject
+  @SuppressWarnings("unused")
+  public ReadThenCleanThenTransfer(
       @SuppressWarnings("CdiInjectionPointsInspection")
       @DataSource("source") AgroalDataSource source,
 
       @SuppressWarnings("CdiInjectionPointsInspection")
-      @DataSource("target") AgroalDataSource target,
+      @DataSource("target") AgroalDataSource target) {
+    this(source, target, ToQueryTransformer.instance());
+  }
 
+  ReadThenCleanThenTransfer(AgroalDataSource source, AgroalDataSource target,
       ToQueryTransformer toQueryTransformer) {
     this.source = source;
     this.target = target;
@@ -37,9 +43,11 @@ public class ReadThenTruncateThenTransfer extends RouteBuilder {
   @Override
   public void configure() {
     // @formatter:off
-    from(scheduler("read-clean-write").delay(Duration.ofSeconds(10).toMillis()))
+    from(
+        scheduler("read-clean-write")
+            .delay(Duration.ofSeconds(10).toMillis()))
         .id("scheduler -> db read -> db clean -> db write")
-        .log("reading")
+        .log("reading...")
         .transacted()
         .to(sql("SELECT * FROM data")
             .dataSource(source)
